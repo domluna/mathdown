@@ -2,26 +2,41 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"text/template"
 
 	"github.com/domluna/watcher"
 	"github.com/gorilla/websocket"
 	"github.com/russross/blackfriday"
 )
 
+const usage = `
+`
+
 var (
 	addr      = flag.String("addr", ":8000", "http port")
-	homeTempl = template.Must(template.New("MD").Parse(homeHTML))
+	verbose   = flag.Bool("v", false, "verbose debug output")
+	homeTempl = template.Must(template.New("home").Parse(homeHTML))
 	upgrader  = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
 	watch *watcher.Watcher
 )
+
+func debug(msg string, args ...interface{}) {
+	if *verbose {
+		if len(args) > 0 {
+			log.Println(fmt.Sprintf(msg, args))
+		} else {
+			log.Println(msg)
+		}
+	}
+}
 
 // readFile reads the file from the given path.
 func readFile(path string) ([]byte, error) {
@@ -33,11 +48,11 @@ func readFile(path string) ([]byte, error) {
 }
 
 // writer writes the message back to the client
-func writer(ws *websocket.Conn, w *watcher.Watcher) {
-	fchan := w.Watch()
+func writer(ws *websocket.Conn) {
+	fchan := watch.Watch()
 	defer func() {
 		ws.Close()
-		w.Close()
+		watch.Close()
 	}()
 
 	for {
@@ -47,15 +62,16 @@ func writer(ws *websocket.Conn, w *watcher.Watcher) {
 				break
 			}
 
+			// skip all non-md signals
 			if fi.Ext != ".md" {
 				continue
 
 			}
 
-			log.Println(fi)
+			debug("FileEvent: %s", fi)
 			p, err := readFile(fi.Path)
 
-			p = blackfriday.MarkdownBasic(p)
+			p = blackfriday.MarkdownCommon(p)
 			if err = ws.WriteMessage(websocket.TextMessage, p); err != nil {
 				break
 			}
@@ -76,7 +92,7 @@ func reader(ws *websocket.Conn) {
 }
 
 func serveWS(w http.ResponseWriter, r *http.Request) {
-	log.Println("Setting up websockets")
+	debug("Setting up websockets")
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); !ok {
@@ -86,7 +102,7 @@ func serveWS(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	go writer(ws, watch)
+	go writer(ws)
 	reader(ws)
 }
 
@@ -94,13 +110,16 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	var v = struct {
 		Host string
+		Data string
 	}{
 		r.Host,
+		"Save a file to parse in realtime.",
 	}
 	homeTempl.Execute(w, &v)
 }
 
 func main() {
+	flag.Parse()
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -114,7 +133,7 @@ func main() {
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/ws", serveWS)
 
-	log.Println("Starting up MathDown ...")
+	debug("Starting up MathDown on port %s", *addr)
 	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal(err)
 	}
@@ -125,22 +144,22 @@ const homeHTML = `
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title> MathDown </title>
+    <title>MathDown</title>
   </head>
   <body>
     <h1> MathDown </h1>
-    <pre id="text"></pre> 
+    <pre id="text">{{.Data}}</pre> 
     <script type="text/javascript">
       (function() {
-      	    var data = document.getElementById("text");
-              var conn = new WebSocket("ws://{{.Host}}/ws");
-              conn.onclose = function(e) {
-                data.textContent = "Connection closed";
-              }
-              conn.onmessage = function(e) {
-              	    console.log("file updated");
-          	    data.innerText = e.data;
-              }
+	var data = document.getElementById("text");
+        var conn = new WebSocket("ws://{{.Host}}/ws");
+        conn.onclose = function(e) {
+        	data.innerHTML = "<p>Connection closed</p>";
+        }
+        conn.onmessage = function(e) {
+              	console.log("file updated");
+          	data.innerHTML = e.data;
+        }
       })();
     </script>
   </body>

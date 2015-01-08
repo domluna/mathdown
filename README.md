@@ -19,4 +19,7 @@ of a directory navigating thing.
 Add KateX
 Some other *change*
 
-#### Anotjer heading
+### TODO
+
+* Profile to see where the CPU use it coming from.
+* Add a view option, for static viewing.
