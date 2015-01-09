@@ -19,7 +19,8 @@ const usage = `
 
 var (
 	addr      = flag.String("addr", ":8000", "http port")
-	verbose   = flag.Bool("v", false, "verbose debug output")
+	verbose   = flag.Bool("v", false, "verbose output")
+	math      = flag.Bool("math", false, "parse LateX expressions via KateX")
 	homeTempl = template.Must(template.New("home").Parse(homeHTML))
 	upgrader  = websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -49,7 +50,7 @@ func readFile(path string) ([]byte, error) {
 
 // writer writes the message back to the client
 func writer(ws *websocket.Conn) {
-	fchan := watch.Watch()
+	watch.Watch()
 	defer func() {
 		ws.Close()
 		watch.Close()
@@ -57,7 +58,7 @@ func writer(ws *websocket.Conn) {
 
 	for {
 		select {
-		case fi, ok := <-fchan:
+		case fi, ok := <-watch.Events:
 			if !ok {
 				break
 			}
@@ -144,6 +145,8 @@ const homeHTML = `
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.1.1/katex.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.1.1/katex.min.js"></script>
     <title>MathDown</title>
   </head>
   <body>
