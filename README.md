@@ -1,25 +1,13 @@
 mathdown
 ========
 
-Converts Markdown/KateX to HTML. Web Server to enable real-time writing/feedback. Static awesome binary.
+Watches markdown files in a directory. Converts markdown to html to be displayed
+in browser on edit.
 
-An edit.
-
-another edit
-
-another edit
-
-## Phase 1
-
-Write to main page, the browser is just the view here. We do not need the logic
-of a directory navigating thing.
-
-## Phase 2
-
-Add KateX
-Some other *change*
+Plan for LateX rendering via KateX.
 
 ### TODO
 
-* Profile to see where the CPU use it coming from.
+* Get the math rendering part to work properly.
+* Better styling.
 * Add a view option, for static viewing.
