@@ -1,4 +1,4 @@
-mathdown
+MathDown
 ========
 
 Watches markdown files in a directory. Converts markdown to html to be displayed

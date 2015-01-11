@@ -39,6 +39,8 @@ var (
 	watch *watcher.Watcher
 )
 
+// debug is a utility function to print out
+// logs. Activated based on the debug flag.
 func debug(msg string, args ...interface{}) {
 	if *verbose {
 		if len(args) > 0 {
@@ -58,7 +60,7 @@ func readFile(path string) ([]byte, error) {
 	return p, nil
 }
 
-// writer writes the message back to the client
+// writer writes the message back to the client.
 func writer(ws *websocket.Conn) {
 	watch.Watch()
 	defer func() {
@@ -108,6 +110,7 @@ func reader(ws *websocket.Conn) {
 	}
 }
 
+// serveWS sets up the websocket connection.
 func serveWS(w http.ResponseWriter, r *http.Request) {
 	debug("Setting up websockets")
 	ws, err := upgrader.Upgrade(w, r, nil)
@@ -123,6 +126,7 @@ func serveWS(w http.ResponseWriter, r *http.Request) {
 	reader(ws)
 }
 
+// serveHome serves the initial template.
 func serveHome(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	var v = struct {
@@ -181,7 +185,6 @@ const homeHTML = `
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.1.1/katex.min.css">
   </head>
   <body>
-    <h1> MathDown </h1>
     <pre id="text">{{.Data}}</pre> 
     <script type="text/javascript">
       (function() {
