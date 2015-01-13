@@ -28,7 +28,7 @@ Options:
 
 var (
 	help      = flag.Bool("help", false, "show usage")
-	addr      = flag.String("addr", ":8000", "http port")
+	addr      = flag.String("addr", ":8082", "http port")
 	verbose   = flag.Bool("verbose", false, "verbose output")
 	math      = flag.Bool("math", false, "parse LateX expressions")
 	homeTempl = template.Must(template.New("home").Parse(homeHTML))
@@ -44,9 +44,9 @@ var (
 func debug(msg string, args ...interface{}) {
 	if *verbose {
 		if len(args) > 0 {
-			log.Println(fmt.Sprintf(msg, args))
+			log.Printf(msg, args...)
 		} else {
-			log.Println(msg)
+			log.Printf(msg)
 		}
 	}
 }
