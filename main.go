@@ -22,14 +22,14 @@ Converts markdown to html to be displayed in the browser one edit.
 Options:
   -help     Show this screen.
   -math	    Parse LateX expressions (currently not working)
-  -debug    Verbose debug output.
+  -verbose  Verbose output.
   -addr	    HTTP address port. (:8000 default).
 `
 
 var (
 	help      = flag.Bool("help", false, "show usage")
 	addr      = flag.String("addr", ":8000", "http port")
-	verbose   = flag.Bool("debug", false, "verbose output")
+	verbose   = flag.Bool("verbose", false, "verbose output")
 	math      = flag.Bool("math", false, "parse LateX expressions")
 	homeTempl = template.Must(template.New("home").Parse(homeHTML))
 	upgrader  = websocket.Upgrader{
@@ -40,7 +40,7 @@ var (
 )
 
 // debug is a utility function to print out
-// logs. Activated based on the debug flag.
+// logs. Activated based on the verbose flag.
 func debug(msg string, args ...interface{}) {
 	if *verbose {
 		if len(args) > 0 {
