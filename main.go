@@ -83,12 +83,7 @@ func writer(ws *websocket.Conn) {
 
 			debug("FileEvent: %s", fi)
 			p, err := readFile(fi.Path)
-
-			if *math {
-				p = blackfriday.Markdown(p, blackfriday.LatexRenderer(0), 0)
-			} else {
-				p = blackfriday.MarkdownCommon(p)
-			}
+			p = blackfriday.MarkdownCommon(p)
 			debug("%s", p)
 
 			if err = ws.WriteMessage(websocket.TextMessage, p); err != nil {
@@ -188,22 +183,39 @@ const homeHTML = `
     <pre id="text">{{.Data}}</pre> 
     <script type="text/javascript">
       (function() {
+       
+function renderKatex(root) { 
+  console.log(root);
+  var children = root.children;
+  for (var i = 0; i < children.length; i++) {
+    var node = children[i];
+    var inner = node.innerText.trim().split(/\s+/);
+    console.log(node, inner);
+    if (inner[0] === 'rendermath') {
+      // Found a block to run KateX on.
+      var expression = inner.slice(1, inner.length).join(' ');
+      katex.render(expression, node);
+    }
+  }
+}
+ 
 	var renderMath = {{.Render}}
 	var text = document.getElementById("text");
         var conn = new WebSocket("ws://{{.Host}}/ws");
         conn.onclose = function(e) {
-	  console.log('Closing connection')
-          data.innerHTML = "<p>Connection closed</p>";
+	  	console.log('Closing connection')
+          	text.innerHTML = "<p>Connection closed</p>";
         }
         conn.onmessage = function(e) {
-	  console.log('A file updated.')
-	  if (renderMath) {
-	    // use KateX
-	    katex.render(e.data, text)
-	  } else {
-            text.innerHTML = e.data;
-	  }
-        }
+		console.log('A file updated.');
+		text.innerHTML = e.data;
+		if (renderMath) {
+	    		// use KateX
+	    		console.log('Rendering math');
+	    		renderKatex(text);
+	  	}
+	}
+	
       })();
     </script>
   </body>
