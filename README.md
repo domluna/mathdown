@@ -17,4 +17,6 @@ rendermath f(x) = \int_{-\infty}^\infty
 ### TODO
 
 * Better styling, option for BYOS? (Bring your own styles).
-* Add a view option, for static viewing.
+* Reading option, essentially what this will do find all .md files
+  and generate a nice viewing template in the browser. Even better if
+  we could fetch md files from something like a github repo.
