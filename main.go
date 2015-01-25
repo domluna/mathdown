@@ -130,7 +130,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 		Render bool
 	}{
 		r.Host,
-		"Save a file to parse in realtime.",
+		"Save a markdown file in the watched directory.",
 		false,
 	}
 
@@ -176,11 +176,90 @@ const homeHTML = `
 <html lang="en">
   <head>
     <title>MathDown</title>
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    font-size: 18px;
+    vertical-align: baseline;
+}
+
+html {
+	line-height: 1.2;
+	font-family: Verdana, sans-serif;
+	background-color: #ededed;
+}
+
+h1 {
+	font-size: 4rem;
+	margin-bottom: 5rem;
+	margin-top: .5rem;
+	text-align: center;
+}
+
+h2 {
+	font-size: 2.5rem;
+	margin-top: 40px;
+	margin-bottom: 8px;
+}
+
+h3 {
+	font-size: 2.0rem;
+	margin-top: 40px;
+	margin-bottom: 4px;
+}
+
+p {
+	margin: 1rem 0;
+}
+
+p a {
+	text-decoration: underline;
+	color: #262727;
+}
+
+pre {
+	font-size: 0.9rem;
+	position: relative;
+	padding: 1.5rem;
+	background-color: #fafafa;
+}
+
+pre + pre {
+	margin-top: 1px;
+}
+
+hr {
+  	border: none;
+  	height: 100px;
+  	width: 150px;
+  	margin: 8em auto;
+  	background-position: center center;
+  	background-repeat: no-repeat;
+  	background-size: contain;
+}
+
+ol, ul {
+	display: block;
+}
+
+#container {
+	max-width: 750px;
+	margin: 0 auto;
+	padding-right: 1rem;
+	padding-left: 1rem;
+}
+
+    </style>
     <script src="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.1.1/katex.min.js"></script>
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.1.1/katex.min.css">
   </head>
   <body>
-    <pre id="text">{{.Data}}</pre> 
+    <div id="container">
+	<div id="text">{{.Data}}</div>
+    </div>
     <script type="text/javascript">
       (function() {
        
