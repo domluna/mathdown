@@ -243,7 +243,7 @@ hr {
 }
 
 ol, ul {
-	display: block;
+	font-size: 0.8em;
 }
 
 #container {
