@@ -213,6 +213,7 @@ h3 {
 
 p {
 	margin: 1rem 0;
+	line-height: 1.5;
 }
 
 p a {
