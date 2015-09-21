@@ -94,17 +94,10 @@ func writer(ws *websocket.Conn) {
 				break
 			}
 
-			// skip all non-md signals
-			if fi.Ext != ".md" {
-				continue
-
-			}
-
 			debug("FileEvent: %s", fi)
 
 			p, err := readFile(fi.Path)
 			p = blackfriday.MarkdownCommon(p)
-			debug("%s", p)
 
 			if err = ws.WriteMessage(websocket.TextMessage, p); err != nil {
 				break
