@@ -1,3 +1,5 @@
+// TODO: use go-bindata for template/css
+// TODO: better css
 package main
 
 import (
@@ -11,33 +13,59 @@ import (
 
 	"github.com/domluna/watcher"
 	"github.com/gorilla/websocket"
-	"github.com/pkg/browser"
 	"github.com/russross/blackfriday"
 )
 
-const usage = `MathDown 
-
-Converts markdown to html to be displayed in the browser one edit.
-
-Options:
-  -help     Show this screen.
-  -math	    Parse LateX expressions (currently not working)
-  -verbose  Verbose output.
-  -addr	    HTTP address port. (:8000 default).
-`
+func usage() {
+	fmt.Fprintf(os.Stderr, "usage: mdpreview [options]\n")
+	fmt.Fprintf(os.Stderr, "\n")
+	fmt.Fprintf(os.Stderr, "Hot renders markdown files in current directory and sub directories on save in the browser.\n")
+	fmt.Fprintf(os.Stderr, "\n")
+	flag.PrintDefaults()
+	os.Exit(2)
+}
 
 var (
-	help      = flag.Bool("help", false, "show usage")
-	addr      = flag.String("addr", ":8082", "http port")
-	verbose   = flag.Bool("verbose", false, "verbose output")
-	math      = flag.Bool("math", false, "parse LateX expressions")
-	homeTempl = template.Must(template.New("home").Parse(homeHTML))
-	upgrader  = websocket.Upgrader{
+	addr     = flag.Int("addr", 8000, "http port")
+	verbose  = flag.Bool("verbose", false, "verbose output, for debug purposes mainly")
+	tmpl     = template.Must(template.New("home").Parse(homeHTML))
+	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
 	watch *watcher.Watcher
 )
+
+func main() {
+	flag.Usage = usage
+	flag.Parse()
+
+	fmt.Println(*verbose)
+	fmt.Println(*addr)
+
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// watch for changes to markdown files
+	watch, err = watcher.New(wd, ".md")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	http.HandleFunc("/", handlerPreview)
+	http.HandleFunc("/ws", handlerWS)
+
+	hostURL := fmt.Sprintf("http://localhost:%d", *addr)
+	//browser.OpenURL(hostURL)
+	debug("Starting up Markdown Preview at " + hostURL)
+
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", *addr), nil); err != nil {
+		log.Fatal(err)
+	}
+
+}
 
 // debug is a utility function to print out
 // logs. Activated based on the verbose flag.
@@ -63,7 +91,9 @@ func readFile(path string) ([]byte, error) {
 // writer writes the message back to the client.
 func writer(ws *websocket.Conn) {
 	watch.Watch()
+
 	defer func() {
+		debug("Shutting down writer")
 		ws.Close()
 		watch.Close()
 	}()
@@ -71,6 +101,7 @@ func writer(ws *websocket.Conn) {
 	for {
 		select {
 		case fi, ok := <-watch.Events:
+
 			if !ok {
 				break
 			}
@@ -82,6 +113,7 @@ func writer(ws *websocket.Conn) {
 			}
 
 			debug("FileEvent: %s", fi)
+
 			p, err := readFile(fi.Path)
 			p = blackfriday.MarkdownCommon(p)
 			debug("%s", p)
@@ -94,7 +126,10 @@ func writer(ws *websocket.Conn) {
 }
 
 func reader(ws *websocket.Conn) {
-	defer ws.Close()
+	defer func() {
+		debug("Shutting down reader")
+		ws.Close()
+	}()
 	ws.SetReadLimit(512)
 
 	for {
@@ -105,78 +140,40 @@ func reader(ws *websocket.Conn) {
 	}
 }
 
-// serveWS sets up the websocket connection.
-func serveWS(w http.ResponseWriter, r *http.Request) {
+// handlerWS sets up the websocket connection.
+func handlerWS(w http.ResponseWriter, r *http.Request) {
 	debug("Setting up websockets")
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		if _, ok := err.(websocket.HandshakeError); !ok {
-			log.Println(err)
-		}
-		return
 
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
 	}
 
-	go writer(ws)
-	reader(ws)
+	go writer(conn)
+	reader(conn)
 }
 
-// serveHome serves the initial template.
-func serveHome(w http.ResponseWriter, r *http.Request) {
+// handlerPreview serves the initial template.
+func handlerPreview(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	var v = struct {
-		Host   string
-		Data   string
-		Render bool
+		Host string
+		Data string
 	}{
 		r.Host,
-		"Save a markdown file in the watched directory.",
-		false,
+		"Go ahead, save that markdown file.",
 	}
 
-	if *math {
-		v.Render = true
-	}
-
-	homeTempl.Execute(w, &v)
-}
-
-func main() {
-	flag.Parse()
-
-	if *help {
-		fmt.Print(usage)
-		os.Exit(0)
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	watch, err = watcher.New(wd, ".md")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	http.HandleFunc("/", serveHome)
-	http.HandleFunc("/ws", serveWS)
-
-	browser.OpenURL(fmt.Sprintf("http://localhost%s", *addr))
-
-	debug("Starting up MathDown on port %s", *addr)
-	if err := http.ListenAndServe(*addr, nil); err != nil {
-		log.Fatal(err)
-	}
-
+	tmpl.Execute(w, &v)
 }
 
 const homeHTML = `
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <title>MathDown</title>
-    <style>
+<head>
+<title> Markdown Preview </title>
+<style>
 * {
     margin: 0;
     padding: 0;
@@ -253,51 +250,25 @@ ol, ul {
 	padding-left: 1rem;
 }
 
-    </style>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.1.1/katex.min.js"></script>
-    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.1.1/katex.min.css">
-  </head>
-  <body>
-    <div id="container">
-	<div id="text">{{.Data}}</div>
-    </div>
-    <script type="text/javascript">
-      (function() {
-       
-function renderKatex(root) { 
-  console.log(root);
-  var children = root.children;
-  for (var i = 0; i < children.length; i++) {
-    var node = children[i];
-    var inner = node.innerText.trim().split(/\s+/);
-    console.log(node, inner);
-    if (inner[0] === 'rendermath') {
-      // Found a block to run KateX on.
-      var expression = inner.slice(1, inner.length).join(' ');
-      katex.render(expression, node);
-    }
-  }
-}
- 
-	var renderMath = {{.Render}}
-	var text = document.getElementById("text");
-        var conn = new WebSocket("ws://{{.Host}}/ws");
-        conn.onclose = function(e) {
-	  	console.log('Closing connection')
-          	text.innerHTML = "<p>Connection closed</p>";
-        }
-        conn.onmessage = function(e) {
-		console.log('A file updated.');
-		text.innerHTML = e.data;
-		if (renderMath) {
-	    		// use KateX
-	    		console.log('Rendering math');
-	    		renderKatex(text);
-	  	}
-	}
-	
-      })();
-    </script>
-  </body>
+</style>
+</head>
+<body>
+	<div id="container">
+		<div id="text">{{.Data}}</div>
+	</div>
+	<script type="text/javascript">
+		(function() {
+			var data = document.getElementById("text");
+			var conn = new WebSocket("ws://{{.Host}}/ws");
+			conn.onclose = function(e) {
+				data.textContent = 'Connection closed';
+			}
+			conn.onmessage = function(e) {
+				console.log('file updated');
+				text.innerHTML = e.data;
+			}
+		})();
+	</script>
+</body>
 </html>
 `
