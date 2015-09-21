@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// watch for changes to markdown files
-	watch, err = watcher.New(wd, ".md")
+	watch, err = watcher.New(wd, []string{"md"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func main() {
 	http.HandleFunc("/ws", handlerWS)
 
 	hostURL := fmt.Sprintf("http://localhost:%d", *port)
-	log.Println("Starting up Markdown Preview at " + hostURL)
+	fmt.Println("Starting up Markdown Preview at " + hostURL)
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil); err != nil {
 		log.Fatal(err)
