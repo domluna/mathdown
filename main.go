@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 
 	"github.com/domluna/watcher"
 	"github.com/gorilla/websocket"
@@ -28,7 +29,7 @@ func usage() {
 var (
 	addr     = flag.Int("addr", 8000, "http port")
 	verbose  = flag.Bool("verbose", false, "verbose output, for debug purposes mainly")
-	tmpl     = template.Must(template.New("home").Parse(homeHTML))
+	tmpl     = template.Must(template.ParseFiles(path.Join("templates", "preview.html")))
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -39,9 +40,6 @@ var (
 func main() {
 	flag.Usage = usage
 	flag.Parse()
-
-	fmt.Println(*verbose)
-	fmt.Println(*addr)
 
 	wd, err := os.Getwd()
 	if err != nil {
@@ -58,7 +56,6 @@ func main() {
 	http.HandleFunc("/ws", handlerWS)
 
 	hostURL := fmt.Sprintf("http://localhost:%d", *addr)
-	//browser.OpenURL(hostURL)
 	debug("Starting up Markdown Preview at " + hostURL)
 
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", *addr), nil); err != nil {
@@ -167,30 +164,3 @@ func handlerPreview(w http.ResponseWriter, r *http.Request) {
 
 	tmpl.Execute(w, &v)
 }
-
-const homeHTML = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<title> Markdown Preview </title>
-</head>
-<body>
-	<div id="container">
-		<div id="text">{{.Data}}</div>
-	</div>
-	<script type="text/javascript">
-		(function() {
-			var data = document.getElementById("text");
-			var conn = new WebSocket("ws://{{.Host}}/ws");
-			conn.onclose = function(e) {
-				data.textContent = 'Connection closed';
-			}
-			conn.onmessage = function(e) {
-				console.log('file updated');
-				text.innerHTML = e.data;
-			}
-		})();
-	</script>
-</body>
-</html>
-`

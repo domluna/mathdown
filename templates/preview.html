@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title> Markdown Preview </title>
+</head>
+<body>
+	<div id="container">
+		<div id="text">{{.Data}}</div>
+	</div>
+	<script type="text/javascript">
+		(function() {
+			var data = document.getElementById("text");
+			var conn = new WebSocket("ws://{{.Host}}/ws");
+			conn.onclose = function(e) {
+				data.textContent = 'Connection closed';
+			}
+			conn.onmessage = function(e) {
+				console.log('file updated');
+				text.innerHTML = e.data;
+			}
+		})();
+	</script>
+</body>
+</html>
