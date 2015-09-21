@@ -12,7 +12,7 @@ usage: mdpreview [options]
 
 Hot renders markdown files in current directory and sub directories on save in the browser.
 
-  -addr int
+  -port int
     	http port (default 8000)
   -verbose
     	verbose output, for debug purposes mainly
