@@ -5,8 +5,9 @@ in the browser.
 
 ## Usage
 
-```
 mdpreview -h
+
+```
 
 usage: mdpreview [options]
 
