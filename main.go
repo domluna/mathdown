@@ -17,17 +17,8 @@ import (
 	"github.com/russross/blackfriday"
 )
 
-func usage() {
-	fmt.Fprintf(os.Stderr, "usage: mdpreview [options]\n")
-	fmt.Fprintf(os.Stderr, "\n")
-	fmt.Fprintf(os.Stderr, "Hot renders markdown files in current directory and sub directories on save in the browser.\n")
-	fmt.Fprintf(os.Stderr, "\n")
-	flag.PrintDefaults()
-	os.Exit(2)
-}
-
 var (
-	addr     = flag.Int("addr", 8000, "http port")
+	port     = flag.Int("port", 8000, "http port")
 	verbose  = flag.Bool("verbose", false, "verbose output, for debug purposes mainly")
 	tmpl     = template.Must(template.ParseFiles(path.Join("templates", "preview.html")))
 	upgrader = websocket.Upgrader{
@@ -55,10 +46,10 @@ func main() {
 	http.HandleFunc("/", handlerPreview)
 	http.HandleFunc("/ws", handlerWS)
 
-	hostURL := fmt.Sprintf("http://localhost:%d", *addr)
-	debug("Starting up Markdown Preview at " + hostURL)
+	hostURL := fmt.Sprintf("http://localhost:%d", *port)
+	log.Println("Starting up Markdown Preview at " + hostURL)
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", *addr), nil); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil); err != nil {
 		log.Fatal(err)
 	}
 
@@ -163,4 +154,13 @@ func handlerPreview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl.Execute(w, &v)
+}
+
+func usage() {
+	fmt.Fprintf(os.Stderr, "usage: mdpreview [options]\n")
+	fmt.Fprintf(os.Stderr, "\n")
+	fmt.Fprintf(os.Stderr, "Hot renders markdown files in current directory and sub directories on save in the browser.\n")
+	fmt.Fprintf(os.Stderr, "\n")
+	flag.PrintDefaults()
+	os.Exit(2)
 }
